@@ -333,6 +333,12 @@ private fun ProviderEditorSheet(
                 },
                 label = { Text("Base URL") },
                 placeholder = { Text("https://api.example.com/v1") },
+                supportingText = {
+                    Text(
+                        "http:// and https:// both work. URLs with the key in the path " +
+                            "(e.g. http://192.168.1.5:8000/v1/your-key) are supported — leave the API key field empty then.",
+                    )
+                },
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth(),
