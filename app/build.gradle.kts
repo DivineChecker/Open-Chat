@@ -17,10 +17,31 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            val ksPath = project.findProperty("RELEASE_STORE_FILE")?.toString()
+                ?: System.getenv("RELEASE_STORE_FILE")
+            if (!ksPath.isNullOrEmpty() && file(ksPath).exists()) {
+                storeFile = file(ksPath)
+                storePassword = project.findProperty("RELEASE_STORE_PASSWORD")?.toString()
+                    ?: System.getenv("RELEASE_STORE_PASSWORD") ?: ""
+                keyAlias = project.findProperty("RELEASE_KEY_ALIAS")?.toString()
+                    ?: System.getenv("RELEASE_KEY_ALIAS") ?: ""
+                keyPassword = project.findProperty("RELEASE_KEY_PASSWORD")?.toString()
+                    ?: System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseSigning = signingConfigs.findByName("release")
+            signingConfig = if (releaseSigning?.storeFile?.exists() == true) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

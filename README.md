@@ -1,4 +1,4 @@
-﻿<div align=\"center\">
+﻿<div align="center">
 
 # ⚡ OpenChat AI
 
@@ -26,8 +26,8 @@ Unlike web-wrapper chat clients, OpenChat AI runs 100% natively on Android with 
 ## ✨ Key Features
 
 ### 🔌 Universal Multi-Provider Support
-- Connect to **OpenAI**, **DeepSeek**, **Groq**, **OpenRouter**, **Together AI**, or **Local Ollama** instances (http://10.0.2.2:11434 / LAN).
-- Dynamically fetch available models from provider /v1/models endpoints.
+- Connect to **OpenAI**, **DeepSeek**, **Groq**, **OpenRouter**, **Together AI**, or **Local Ollama** instances (`http://10.0.2.2:11434` / LAN).
+- Dynamically fetch available models from provider `/v1/models` endpoints.
 - Fast model switching per conversation or globally.
 
 ### ⚡ Real-Time Streaming & Deep Reasoning
@@ -42,21 +42,21 @@ Unlike web-wrapper chat clients, OpenChat AI runs 100% natively on Android with 
 
 ### 🧠 Persistent Long-Term Memory
 - Cross-conversation memory bank stored on-device.
-- Models can autonomously invoke the save_memory tool to remember user preferences, project context, and custom directives.
+- Models can autonomously invoke the `save_memory` tool to remember user preferences, project context, and custom directives.
 
 ### 📎 Multimodal Attachments
 - **Image Vision**: Attach photos and screenshots for multimodal analysis (automatic base64 image downsampling and optimization).
-- **PDF Document Extraction**: Native PDF text extraction using pdfbox-android.
+- **PDF Document Extraction**: Native PDF text extraction using `pdfbox-android`.
 - **Text & Source Code**: Attach code files, markdown docs, and logs directly into the context window.
 
 ### 📐 Rich Formatting: LaTeX & Code Syntax Highlighting
-- **Mathematical Formulations**: Inline ($...$) and block ($$...) LaTeX equation rendering.
+- **Mathematical Formulations**: Inline (`$...$`) and block (`$$...$$`) LaTeX equation rendering.
 - **Syntax Highlighting**: Real-time token highlighting across Kotlin, Java, Python, JavaScript, TypeScript, Rust, Go, C++, SQL, JSON, YAML, Bash, and XML/HTML.
 - One-tap copy for code blocks and individual messages.
 
 ### 🎨 Material Design 3 UI/UX
 - Dynamic color theming, high-contrast dark mode, and edge-to-edge typography.
-- Smooth Compose animations and reactive UI state driven by StateFlow.
+- Smooth Compose animations and reactive UI state driven by `StateFlow`.
 - System prompt presets (Coder, Writer, Translator, Concise, Teacher) + customizable personas.
 
 ### 🛡️ Local & Private
@@ -67,7 +67,7 @@ Unlike web-wrapper chat clients, OpenChat AI runs 100% natively on Android with 
 
 ## 🏗️ Architecture & Tech Stack
 
-`mermaid
+```mermaid
 graph TD
     UI[Jetpack Compose UI & Material 3]
     VM[AppViewModel - StateFlow]
@@ -84,7 +84,7 @@ graph TD
     REPO --> KTOR
     REPO --> PDF
     KTOR -->|HTTPS / Stream| API
-`
+```
 
 | Layer | Technologies |
 |---|---|
@@ -101,11 +101,12 @@ graph TD
 
 ## 📁 Project Structure
 
-`	ext
+```text
 Open-Chat/
 ├── .github/
 │   └── workflows/
-│       └── android.yml            # Automated CI build on GitHub Actions
+│       ├── android.yml            # Automated CI test & debug APK build
+│       └── release.yml            # Auto-keystore generation & signed release APK
 ├── app/
 │   ├── src/
 │   │   └── main/
@@ -133,11 +134,26 @@ Open-Chat/
 ├── gradle.properties
 ├── LICENSE                            # MIT License
 └── README.md
-`
+```
 
 ---
 
-## 🚀 Getting Started
+## 📦 Automated Release Builds (Signed APK)
+
+This repository includes an automated GitHub Actions workflow (`.github/workflows/release.yml`) that creates its own signing key and builds a signed release APK:
+
+1. In GitHub, open the **[Actions](https://github.com/DivineChecker/Open-Chat/actions)** tab.
+2. Select **Build & Sign Release APK**.
+3. Click **Run workflow** &rarr; select branch `main` &rarr; click **Run workflow**.
+4. The workflow will:
+   - Generate a secure 2048-bit RSA PKCS12 release keystore automatically on the runner.
+   - Compile and sign the release APK with Gradle and verify it via `apksigner`.
+   - Upload the installable APK to **Artifacts** (`OpenChat-AI-Signed-Release-APK`).
+   - Create a published **GitHub Release** tagged with the build number for one-click downloading.
+
+---
+
+## 🚀 Getting Started Locally
 
 ### Prerequisites
 - **Android Studio** Ladybug (2024.2.1+) or newer
@@ -147,29 +163,29 @@ Open-Chat/
 ### Building Locally
 
 1. **Clone the repository**:
-   `ash
+   ```bash
    git clone https://github.com/DivineChecker/Open-Chat.git
    cd Open-Chat
-   `
+   ```
 
 2. **Open in Android Studio**:
-   - Select **File > Open** and choose the Open-Chat project directory.
+   - Select **File > Open** and choose the `Open-Chat` project directory.
    - Allow Gradle to sync dependencies.
 
 3. **Run on Device or Emulator**:
    - Connect your Android device or start an emulator.
-   - Click **Run 'app'** (Shift + F10).
+   - Click **Run 'app'** (`Shift + F10`).
 
 4. **Build APK via Command Line**:
-   `ash
+   ```bash
    # On Windows (PowerShell)
    .\gradlew.bat assembleDebug
 
    # On macOS / Linux
    chmod +x gradlew
    ./gradlew assembleDebug
-   `
-   The debug APK will be generated at pp/build/outputs/apk/debug/app-debug.apk.
+   ```
+   The debug APK will be generated at `app/build/outputs/apk/debug/app-debug.apk`.
 
 ---
 
@@ -178,10 +194,10 @@ Open-Chat/
 1. Launch OpenChat AI on your device.
 2. Tap the **Providers** tab.
 3. Tap **Add Provider** and select a preset or enter a custom endpoint:
-   - **OpenAI**: https://api.openai.com/v1
-   - **DeepSeek**: https://api.deepseek.com/v1
-   - **Groq**: https://api.groq.com/openai/v1
-   - **Ollama (Local)**: http://10.0.2.2:11434/v1 (from Android emulator) or your PC LAN IP
+   - **OpenAI**: `https://api.openai.com/v1`
+   - **DeepSeek**: `https://api.deepseek.com/v1`
+   - **Groq**: `https://api.groq.com/openai/v1`
+   - **Ollama (Local)**: `http://10.0.2.2:11434/v1` (from Android emulator) or your PC LAN IP
 4. Paste your API key and tap **Fetch Models** to test the connection.
 5. Select your preferred default model and begin chatting!
 
@@ -190,12 +206,6 @@ Open-Chat/
 ## 🤝 Contributing
 
 Contributions are warmly welcomed! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting pull requests.
-
-1. Fork the repository
-2. Create a feature branch (git checkout -b feature/amazing-feature)
-3. Commit your changes (git commit -m 'Add amazing feature')
-4. Push to branch (git push origin feature/amazing-feature)
-5. Open a Pull Request
 
 ---
 

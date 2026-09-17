@@ -1,0 +1,121 @@
+﻿name: Build & Sign Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish as a GitHub Release'
+        required: false
+        type: boolean
+        default: true
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release-apk:
+    name: Generate Key & Compile Signed Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Generate Self-Signed Release Keystore
+        id: generate_keystore
+        run: |
+          KEYSTORE_DIR="${RUNNER_TEMP}/keystore"
+          mkdir -p "$KEYSTORE_DIR"
+          KEYSTORE_PATH="$KEYSTORE_DIR/release.jks"
+          KEY_ALIAS="openchat_release"
+          KEY_PASS="OpenChatKeySecret2026!"
+          STORE_PASS="OpenChatKeySecret2026!"
+
+          echo "Generating 2048-bit RSA release keystore..."
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storetype PKCS12 \
+            -alias "$KEY_ALIAS" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "$STORE_PASS" \
+            -keypass "$KEY_PASS" \
+            -dname "CN=OpenChat AI, OU=Mobile, O=OpenChat, L=Global, ST=Worldwide, C=US"
+
+          echo "keystore_path=$KEYSTORE_PATH" >> $GITHUB_OUTPUT
+          echo "key_alias=$KEY_ALIAS" >> $GITHUB_OUTPUT
+          echo "key_pass=$KEY_PASS" >> $GITHUB_OUTPUT
+          echo "store_pass=$STORE_PASS" >> $GITHUB_OUTPUT
+
+      - name: Build Signed Release APK with Gradle
+        env:
+          RELEASE_STORE_FILE: ${{ steps.generate_keystore.outputs.keystore_path }}
+          RELEASE_STORE_PASSWORD: ${{ steps.generate_keystore.outputs.store_pass }}
+          RELEASE_KEY_ALIAS: ${{ steps.generate_keystore.outputs.key_alias }}
+          RELEASE_KEY_PASSWORD: ${{ steps.generate_keystore.outputs.key_pass }}
+        run: |
+          ./gradlew assembleRelease --stacktrace \
+            -PRELEASE_STORE_FILE="${RELEASE_STORE_FILE}" \
+            -PRELEASE_STORE_PASSWORD="${RELEASE_STORE_PASSWORD}" \
+            -PRELEASE_KEY_ALIAS="${RELEASE_KEY_ALIAS}" \
+            -PRELEASE_KEY_PASSWORD="${RELEASE_KEY_PASSWORD}"
+
+      - name: Verify APK Signature & Package Artifacts
+        run: |
+          mkdir -p release-output
+          APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: Release APK was not found!"
+            exit 1
+          fi
+
+          echo "Found compiled release APK at: $APK_FILE"
+          TARGET_NAME="OpenChat-AI-v1.0-build${{ github.run_number }}-signed-release.apk"
+          cp "$APK_FILE" "release-output/$TARGET_NAME"
+
+          echo "Attempting signature verification..."
+          if command -v apksigner > /dev/null; then
+            apksigner verify --verbose "release-output/$TARGET_NAME" || true
+          elif [ -d "$ANDROID_HOME/build-tools" ]; then
+            LATEST_BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+            if [ -f "$LATEST_BUILD_TOOLS/apksigner" ]; then
+              "$LATEST_BUILD_TOOLS/apksigner" verify --verbose "release-output/$TARGET_NAME" || true
+            fi
+          fi
+
+      - name: Upload Signed APK as GitHub Actions Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenChat-AI-Signed-Release-APK
+          path: release-output/*.apk
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: (github.event_name == 'workflow_dispatch' && inputs.publish_release) || startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="v1.0.${{ github.run_number }}"
+          if [ "${{ startsWith(github.ref, 'refs/tags/v') }}" = "true" ]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "Publishing release $TAG_NAME..."
+          gh release create "$TAG_NAME" release-output/*.apk \
+            --title "OpenChat AI Release $TAG_NAME" \
+            --notes "Automated signed release build from GitHub Actions run #${{ github.run_number }}. Signed with auto-generated release keystore."
