@@ -49,7 +49,7 @@ class OpenAIService {
 
     /** Normalizes user input like "api.openai.com/v1/" into a usable base URL. */
     fun normalizeBaseUrl(raw: String): String {
-        var url = raw.trim().removeSuffix("/")
+        var url = raw.trim().trimEnd('/')
         if (url.isNotEmpty() && !url.startsWith("http://") && !url.startsWith("https://")) {
             url = "https://$url"
         }
